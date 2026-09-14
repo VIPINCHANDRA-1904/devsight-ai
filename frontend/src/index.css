@@ -1,0 +1,226 @@
+/* DEVSIGHTAI — Global Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* ──────────────────────────────────────────────
+   Dual Theme Tokens — Light & Dark
+   Brand: Kelly Green (Primary) & Royal Blue (Secondary)
+   Heading: Bahnschrift
+   ────────────────────────────────────────────── */
+
+:root {
+  /* Light Theme (Clean, white background, neutral surfaces) */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #F1F5F9;
+
+  --border-default: #E2E8F0;
+  --border-subtle: #F1F5F9;
+
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+  --text-dim: #64748B;
+
+  /* Brand Accents */
+  --brand-green: #15803D; /* Kelly Green */
+  --brand-blue: #1D4ED8;  /* Royal Blue */
+  --brand-amber: #D97706;
+  --brand-red: #DC2626;
+  --brand-cyan: #0284C7;
+  --brand-purple: #4338CA; /* Neutral deep indigo */
+
+  /* Severity Tokens */
+  --severity-healthy: #15803D;
+  --severity-warning: #D97706;
+  --severity-critical: #DC2626;
+  --severity-info: #1D4ED8;
+
+  /* Typography */
+  --font-heading: 'Bahnschrift', 'DIN Alternate', 'Segoe UI', -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+}
+
+.dark {
+  /* Dark Theme (Enterprise deep slate, high contrast) */
+  --bg-primary: #0B0F19;
+  --bg-secondary: #131B2A;
+  --bg-card: #182234;
+  --bg-elevated: #1F2D44;
+
+  --border-default: #26354D;
+  --border-subtle: #1A2536;
+
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+
+  /* Brand Accents (Adapted for dark contrast) */
+  --brand-green: #22C55E; /* Kelly Green */
+  --brand-blue: #3B82F6;  /* Royal Blue */
+  --brand-amber: #F59E0B;
+  --brand-red: #EF4444;
+  --brand-cyan: #06B6D4;
+  --brand-purple: #6366F1;
+
+  /* Severity Tokens */
+  --severity-healthy: #22C55E;
+  --severity-warning: #F59E0B;
+  --severity-critical: #EF4444;
+  --severity-info: #3B82F6;
+}
+
+@theme {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card: var(--bg-card);
+  --color-bg-elevated: var(--bg-elevated);
+
+  --color-border-default: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
+
+  --color-accent-green: var(--brand-green);
+  --color-accent-emerald: var(--brand-green);
+  --color-accent-blue: var(--brand-blue);
+  --color-accent-yellow: var(--brand-amber);
+  --color-accent-red: var(--brand-red);
+  --color-accent-cyan: var(--brand-cyan);
+  --color-accent-pink: var(--brand-red);
+  --color-accent-purple: var(--brand-purple);
+
+  --color-severity-healthy: var(--severity-healthy);
+  --color-severity-warning: var(--severity-warning);
+  --color-severity-critical: var(--severity-critical);
+  --color-severity-info: var(--severity-info);
+
+  --font-heading: var(--font-heading);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --animate-fade-in: fadeIn 0.18s ease-out forwards;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* ──────────────────────────────────────────────
+   Base & Typography
+   ────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) var(--bg-primary);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.015em;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ──────────────────────────────────────────────
+   Scrollbar (WebKit)
+   ────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* ──────────────────────────────────────────────
+   Enterprise Utilities
+   ────────────────────────────────────────────── */
+
+@utility font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+@utility glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+}
+
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+}
+
+@utility glow-blue {
+  box-shadow: none;
+}
+
+.glow-blue {
+  box-shadow: none;
+}
+
+@utility glow-red {
+  box-shadow: none;
+}
+
+.glow-red {
+  box-shadow: none;
+}
+
+@utility glow-green {
+  box-shadow: none;
+}
+
+.glow-green {
+  box-shadow: none;
+}
+
+/* Fallback class for standard non-utility usage */
+.animate-fade-in {
+  animation: fadeIn 0.18s ease-out forwards;
+}

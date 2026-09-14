@@ -1,0 +1,534 @@
+DEVSIGHTAI – Complete Data Flow
+
+
+
+
+
+
+   1
+
+
+
+
+The basic flow is:
+              REAL APPLICATION
+                     │
+        ┌────────────┼─────────────┐
+        ↓            ↓             ↓
+     Metrics       Logs       Deployment Events
+        │            │             │
+        └────────────┼─────────────┘
+                     ↓
+              DATA COLLECTION
+                     ↓
+                FastAPI API
+                     ↓
+             DATA PROCESSING
+                     ↓
+        ┌────────────┼────────────┐
+        ↓            ↓            ↓
+   Anomaly       Log Analysis   Correlation
+   Detection
+        │            │            │
+        └────────────┼────────────┘
+                     ↓
+              INCIDENT ENGINE
+                     ↓
+               AI ANALYSIS
+                     ↓
+        ┌────────────┼─────────────┐
+        ↓            ↓             ↓
+     Root Cause   Prediction   Recommendation
+                     ↓
+              DEVSIGHTAI DASHBOARD
+Let's understand where every piece of data actually comes from.
+1. First: There is a real application being monitored
+Suppose a company has this application:
+                    E-Commerce App
+                          │
+          ┌───────────────┼──────────────┐
+          ↓               ↓              ↓
+      User Service    Order Service   Payment Service
+          │               │              │
+          └───────────────┼──────────────┘
+                          ↓
+                       Database
+DEVSIGHTAI doesn't generate these metrics itself.
+It acts as a monitoring/analysis platform.
+The application/server produces the data, and DEVSIGHTAI collects it.
+2. How does it receive CPU and RAM?
+For this, we can create a small Monitoring Agent.
+For example:
+Monitored Server
+       │
+       ↓
+ DEVSIGHT Agent
+       │
+       ├── CPU
+       ├── RAM
+       ├── Disk
+       ├── Network
+       └── System information
+       │
+       ↓
+ HTTP/HTTPS
+       │
+       ↓
+ DEVSIGHTAI FastAPI
+The agent can be a lightweight Python program running on the server.
+For example, conceptually:
+Every 10 seconds:
+
+CPU       = 72%
+RAM       = 64%
+Disk      = 51%
+Network   = 20 MB/s
+Timestamp = 10:30:10
+The agent sends this to your backend.
+Example
+{
+  "server_id": "server-01",
+  "timestamp": "2026-09-09T10:30:10",
+  "cpu": 72,
+  "memory": 64,
+  "disk": 51
+}
+Your FastAPI backend receives this data.
+3. How does it receive Response Time?
+CPU and RAM are server-level metrics.
+But response time belongs to the application/API.
+For example:
+User
+ ↓
+GET /api/payment
+ ↓
+Payment Service
+ ↓
+Database
+ ↓
+Response
+Suppose the request takes:
+Request started: 10:30:10
+Response received: 10:30:11.8
+
+Response time = 1.8 seconds
+There are multiple ways to collect this.
+For your project, the simplest is application instrumentation.
+Your application sends:
+{
+  "service": "payment-service",
+  "endpoint": "/api/payment",
+  "response_time": 1.8,
+  "status_code": 500,
+  "timestamp": "2026-09-09T10:30:11"
+}
+DEVSIGHTAI receives it through an API.
+4. How does it get Request Rate?
+The application already knows how many requests it receives.
+For example, during one minute:
+10:00 – 1,200 requests
+10:01 – 1,350 requests
+10:02 – 1,480 requests
+10:03 – 2,900 requests
+The monitoring agent/application collector sends:
+{
+  "service": "payment-service",
+  "requests_per_minute": 2900
+}
+DEVSIGHTAI stores this in the database.
+5. How does it get Error Rate?
+This can come from the application's HTTP responses/logs.
+Suppose:
+Total requests = 10,000
+Failed requests = 850
+Then:
+Error Rate = 850 / 10000 × 100
+
+           = 8.5%
+The backend can calculate this itself from request events.
+So you don't necessarily have to send error_rate directly.
+You can send:
+Request
+Status Code
+Timestamp
+Service
+and DEVSIGHTAI calculates:
+Request Rate
+Error Rate
+Success Rate
+This is actually a better architecture.
+6. Now the important part: LOGS
+Your professors may ask:
+“How does your system get the application logs?”
+
+Suppose the Payment Service produces:
+2026-09-09 10:30:12 INFO Payment request received
+2026-09-09 10:30:13 INFO Connecting to database
+2026-09-09 10:30:14 ERROR Database connection timeout
+2026-09-09 10:30:14 ERROR Payment request failed
+The DEVSIGHT Agent can monitor the application's log file.
+For example:
+/var/log/payment-service.log
+Whenever new entries appear:
+Application
+     ↓
+Log File
+     ↓
+Monitoring Agent
+     ↓
+FastAPI
+The agent sends new log entries to DEVSIGHTAI.
+7. What if the application doesn't have a log file?
+That's where you can make the project more flexible.
+Support:
+Option A — Log file
+application.log
+       ↓
+Agent
+Option B — Direct API
+Application
+     ↓
+DEVSIGHTAI /logs API
+Option C — Uploaded logs
+For demonstration/testing:
+user uploads .log
+        ↓
+DEVSIGHTAI
+        ↓
+Log parser
+Your PPT already specifies application log collection and analysis, and your software requirements use Python/Pandas/Scikit-learn for processing.  
+8. How does it receive Deployment Information?
+This is slightly different.
+Deployment information doesn't come from CPU/RAM monitoring.
+It comes from the CI/CD pipeline.
+For example:
+Developer
+    ↓
+GitHub
+    ↓
+Code Change
+    ↓
+Build
+    ↓
+Testing
+    ↓
+Deployment
+    ↓
+Payment Service v2.4
+After deployment, the CI/CD pipeline sends an event to DEVSIGHTAI.
+For example:
+{
+  "service": "payment-service",
+  "version": "2.4",
+  "environment": "production",
+  "deployed_at": "2026-09-09T10:20:00",
+  "commit": "a82f91"
+}
+DEVSIGHTAI stores:
+Payment Service
+Version: 2.4
+Deployment: 10:20 AM
+9. Why is Deployment Information important?
+Now imagine:
+Before deployment
+Error rate = 1.2%
+Response time = 400 ms
+Deployment
+10:20 AM
+Payment Service v2.4 deployed
+After deployment
+10:22 → Error rate 2%
+10:25 → Error rate 5%
+10:27 → Error rate 9%
+10:30 → Error rate 18%
+DEVSIGHTAI can correlate:
+Deployment
+     ↓
+     +10 min
+     ↓
+Latency increased
+     ↓
+Errors increased
+     ↓
+Database errors increased
+     ↓
+INCIDENT
+This is where your project becomes much more intelligent than simply displaying graphs.
+10. Now all data reaches FastAPI
+Your architecture can have different endpoints:
+POST /api/metrics
+POST /api/logs
+POST /api/events
+POST /api/deployments
+For example:
+Monitoring Agent
+       │
+       ├──────────→ /api/metrics
+       │
+       └──────────→ /api/logs
+
+Application
+       │
+       └──────────→ /api/events
+
+CI/CD Pipeline
+       │
+       └──────────→ /api/deployments
+FastAPI acts as the central ingestion layer.
+11. Where is the data stored?
+Your current PPT specifies PostgreSQL for metrics, logs, incidents and historical reports. 
+So:
+FastAPI
+   ↓
+PostgreSQL
+You could have tables such as:
+users
+services
+metrics
+logs
+deployments
+incidents
+incident_events
+recommendations
+12. Then comes anomaly detection
+Now your ML model receives the processed metrics.
+For example:
+Time       CPU    RAM    Latency   Errors
+10:00      45     52     300ms       1
+10:05      47     53     320ms       2
+10:10      51     55     350ms       2
+10:15      94     91     2400ms     87  ← abnormal
+Isolation Forest analyses these patterns.
+Your PPT specifically proposes Isolation Forest for detecting unusual system behaviour. 
+It could produce:
+Anomaly Score = -0.72
+Status = ANOMALY
+13. But an anomaly alone isn't an incident
+This is a very important distinction.
+Suppose:
+CPU = 95%
+That doesn't automatically mean the application is broken.
+Maybe someone is running a legitimate heavy process.
+So DEVSIGHTAI should correlate multiple signals.
+For example:
+CPU ↑
+RAM ↑
+Latency ↑
+Error Rate ↑
+Database Timeout ↑
+Deployment happened recently
+Now the system has strong evidence that something is wrong.
+14. Incident Correlation Engine
+This is the heart of your project.
+It receives:
+Metrics
+Logs
+Anomalies
+Deployments
+Service information
+Then looks for relationships.
+Example:
+10:20
+Deployment v2.4
+
+      ↓
+
+10:23
+Latency ↑
+
+      ↓
+
+10:24
+Database timeout logs
+
+      ↓
+
+10:25
+HTTP 500 ↑
+
+      ↓
+
+10:26
+Isolation Forest → anomaly
+
+      ↓
+
+10:27
+Incident created
+Instead of showing five separate alerts:
+⚠ High CPU
+⚠ High latency
+⚠ Database error
+⚠ HTTP 500
+⚠ Deployment change
+DEVSIGHTAI creates:
+🔴 INCIDENT #1024 – Payment Service Degradation
+
+This matches your existing objective of grouping time-related alerts and logs into manageable incidents. 
+15. Then AI receives the incident context
+This is where the LLM comes in.
+Don't send the entire database to the AI.
+Instead, your backend prepares a structured incident summary.
+For example:
+Incident ID: INC-1024
+
+Service:
+Payment Service
+
+Time:
+10:20 – 10:30
+
+Metrics:
+CPU: 52% → 88%
+RAM: 60% → 89%
+Latency: 400ms → 2.8s
+Error rate: 1.2% → 18%
+
+Logs:
+Database connection timeout
+HTTP 500
+Payment transaction failed
+
+Deployment:
+Version 2.4 deployed at 10:20
+
+Historical:
+Similar incident occurred on Aug 14
+Then:
+             Incident Context
+                    ↓
+                 LLM API
+                    ↓
+          AI Incident Analysis
+16. AI produces the explanation
+For example:
+Root Cause Hypothesis
+The Payment Service experienced database connection exhaustion shortly after version 2.4 was deployed.
+
+Evidence
+Database timeout errors increased after deployment while latency and HTTP 500 errors increased simultaneously.
+
+Recommended Actions
+1. Check database connection pool configuration.
+2. Review changes introduced in version 2.4.
+3. Compare current database load with the previous version.
+4. Consider rollback if the issue continues.
+
+This aligns with your existing concept of AI-generated root-cause explanations, supporting evidence and actionable recommendations. 
+17. Historical comparison
+Suppose the same problem happened before.
+Database:
+Incident #832
+Date: Aug 14
+Service: Payment
+Cause: Connection pool exhaustion
+Solution: Increased pool size
+Current incident:
+Incident #1024
+Date: Sep 9
+Service: Payment
+Your system can find:
+Similar incident detected
+
+Then AI can use that historical information.
+This feature is already part of your stated objectives. major pr3
+18. Finally, the dashboard
+React receives processed information from FastAPI.
+PostgreSQL
+     ↑
+   FastAPI
+     ↑
+   React
+     ↓
+┌───────────────────────────────┐
+│      DEVSIGHTAI DASHBOARD     │
+│                               │
+│ CPU       88%       🔴        │
+│ RAM       89%       🔴        │
+│ Latency   2.8 sec    🔴        │
+│ Error     18%        🔴        │
+│                               │
+│ INCIDENT #1024                │
+│ Payment Service Degradation   │
+│                               │
+│ Possible Cause:               │
+│ Database connection issue     │
+│                               │
+│ Recommendation:               │
+│ Check connection pool         │
+└───────────────────────────────┘
+19. Complete flow you can explain to professors
+Remember this:
+                    APPLICATION
+                         │
+          ┌──────────────┼──────────────┐
+          ↓              ↓              ↓
+      CPU/RAM        Application       CI/CD
+      Metrics           Logs         Deployment
+          │              │              │
+          ↓              ↓              ↓
+       Monitoring     Log Collector   Webhook/API
+          Agent           │              │
+             └────────────┼──────────────┘
+                          ↓
+                    FASTAPI BACKEND
+                          ↓
+                    DATA PROCESSING
+                          ↓
+              ┌───────────┼───────────┐
+              ↓           ↓           ↓
+          ML Anomaly   Log Analysis  Metrics
+              │           │           │
+              └───────────┼───────────┘
+                          ↓
+                  CORRELATION ENGINE
+                          ↓
+                    INCIDENT CREATED
+                          ↓
+              ┌───────────┼────────────┐
+              ↓           ↓            ↓
+          Historical     AI RCA      Prediction
+           Analysis
+              │           │            │
+              └───────────┼────────────┘
+                          ↓
+                    POSTGRESQL
+                          ↓
+                     FASTAPI
+                          ↓
+                  REACT DASHBOARD
+                          ↓
+               DEVELOPER / DEVOPS /
+                QA / ADMIN / MANAGER
+The key idea
+DEVSIGHTAI does not magically receive everything from one source.
+It receives different types of telemetry through different mechanisms:
+Data	Source	How DEVSIGHTAI receives it
+CPU	Server	Monitoring Agent
+RAM	Server	Monitoring Agent
+Disk	Server	Monitoring Agent
+Response Time	Application/API	Application instrumentation
+Request Count	Application/API	Application instrumentation
+Error Rate	Application/API/logs	Events + log analysis
+Logs	Application	Log Agent / API
+Deployment	CI/CD	Webhook/API
+Historical incidents	DEVSIGHTAI DB	PostgreSQL
+User actions	Dashboard	React → FastAPI
+
+
+One important recommendation
+For your college project, don't try to connect to dozens of real companies' infrastructure. Build a Demo Application + DEVSIGHTAI Monitoring Agent.
+You can create a small simulated e-commerce application with:
+Login
+Products
+Orders
+Payments
+Database
+Then deliberately generate failures:
+High CPU → Database timeout → HTTP 500 → Deployment regression → Memory leak
+
+Your DEVSIGHTAI system catches them.
+That gives you a real end-to-end demonstration instead of just showing a dashboard with manually entered data.
+If you implement it this way, your professor can actually see:
+“I create a failure → data is generated → DEVSIGHTAI receives it → ML detects it → incidents are correlated → AI explains it → dashboard displays the result.”
+That is the practical proof your current proposal is missing.
