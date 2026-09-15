@@ -52,13 +52,14 @@ cors_origins = [
     "https://devsight-ai.vercel.app",
     "http://localhost:5173",
     "http://localhost:3000",
+    "https://devsightai-backend.onrender.com",
 ]
 cors_origins = list(dict.fromkeys(o for o in cors_origins if o))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"^https:\/\/([a-zA-Z0-9_-]+\.)*vercel\.app$",
+    allow_origin_regex=r"^https:\/\/([a-zA-Z0-9_-]+\.)*(vercel\.app|onrender\.com)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
