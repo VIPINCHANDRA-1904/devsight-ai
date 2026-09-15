@@ -36,11 +36,12 @@ CREATE POLICY "Allow authenticated read on profiles" ON public.profiles
 CREATE POLICY "Allow anon read on profiles" ON public.profiles
     FOR SELECT TO anon USING (true);
 
--- Allow users to update only their own profile
+-- Allow users to update only their own profile (wrapped in SELECT for InitPlan performance optimization)
+DROP POLICY IF EXISTS "Allow users to update own profile" ON public.profiles;
 CREATE POLICY "Allow users to update own profile" ON public.profiles
     FOR UPDATE TO authenticated
-    USING (auth.uid() = id)
-    WITH CHECK (auth.uid() = id);
+    USING ((select auth.uid()) = id)
+    WITH CHECK ((select auth.uid()) = id);
 
 -- Allow service_role key full access
 CREATE POLICY "Allow service_role full access on profiles" ON public.profiles
@@ -51,7 +52,11 @@ CREATE POLICY "Allow service_role full access on profiles" ON public.profiles
 -- ──────────────────────────────────────────────
 -- Automatically creates a public.profiles record whenever a new user signs up in auth.users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     INSERT INTO public.profiles (id, email, full_name, role)
     VALUES (
@@ -67,7 +72,11 @@ BEGIN
         updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
+
+-- Revoke public execution of this trigger function so it cannot be invoked via RPC API
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM anon, authenticated;
 
 -- Drop trigger if already exists and recreate
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
