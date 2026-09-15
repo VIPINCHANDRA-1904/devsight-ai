@@ -39,6 +39,7 @@ import {
   IconCheck,
   IconActivity,
   IconShield,
+  IconLogout,
 } from '../components/icons'
 
 const NAV_ITEMS = [
@@ -77,9 +78,19 @@ const ROLE_CONFIG = {
 }
 
 export default function DashboardLayout() {
-  const { user, role, switchRole } = useAuth()
+  const { user, role, switchRole, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      navigate('/login')
+    } catch (err) {
+      console.error('Sign out error:', err)
+      navigate('/login')
+    }
+  }
 
   // Notification state
   const [notifications, setNotifications] = useState([])
@@ -228,6 +239,19 @@ export default function DashboardLayout() {
               {currentRoleCfg.label}
             </span>
           </div>
+
+          {/* Quick Sign Out Action */}
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-border-default bg-bg-card hover:bg-accent-red/10 hover:border-accent-red/30 hover:text-accent-red text-xs text-text-secondary transition"
+            title="Sign out of current account"
+          >
+            <div className="flex items-center gap-2">
+              <IconLogout className="w-3.5 h-3.5 text-text-dim" />
+              <span>Sign Out</span>
+            </div>
+            <span className="text-[10px] font-mono text-text-dim">Logout</span>
+          </button>
 
           {/* Legal / Policy Links */}
           <div className="flex items-center justify-between px-1 pt-2 border-t border-border-default text-xs text-text-muted">
@@ -426,6 +450,17 @@ export default function DashboardLayout() {
                 </div>
               )}
             </div>
+
+            {/* Sign Out Action Button in Header */}
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-default bg-bg-card hover:bg-accent-red/10 hover:border-accent-red/30 hover:text-accent-red text-text-secondary transition text-xs font-semibold"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <IconLogout className="w-3.5 h-3.5 text-text-dim" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </header>
 

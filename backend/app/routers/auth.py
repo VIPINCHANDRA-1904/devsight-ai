@@ -39,7 +39,7 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication & RBAC"])
 def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
     """
     FastAPI dependency to extract and validate the JWT Bearer token from the request header.
-    Returns the user dictionary or raises 401 Unauthorized.
+    Validates against Supabase Auth, with backward-compatible fallback for demo presentations.
     """
     if not authorization:
         # Fallback to default developer demo user for seamless local interaction if unauthenticated
@@ -53,38 +53,70 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
         )
 
     token = parts[1]
-    payload = decode_access_token(token)
-    if not payload or not payload.get("sub"):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid, expired, or malformed access token",
-        )
 
-    user_id = payload.get("sub")
-    role = payload.get("role", "developer")
-    name = payload.get("name", "Demo User")
+    # 1. Quick check for demo mode token
+    if token == "demo-mode-token":
+        return DEMO_USERS[0]
 
-    # Check against demo users first
-    for u in DEMO_USERS:
-        if u["id"] == user_id or u["email"] == user_id:
-            return u
-
-    # Check Supabase DB
+    # 2. Validate via Supabase Auth service
     if supabase:
         try:
-            res = supabase.table("users").select("*").eq("id", user_id).execute()
-            if res.data and len(res.data) > 0:
-                return res.data[0]
-        except Exception as e:
-            logger.debug(f"DB user query error: {e}")
+            sb_response = supabase.auth.get_user(token)
+            if sb_response and hasattr(sb_response, "user") and sb_response.user:
+                sb_u = sb_response.user
+                meta = getattr(sb_u, "user_metadata", {}) or {}
+                user_role = meta.get("role", "developer")
 
-    return {
-        "id": user_id,
-        "email": user_id if "@" in user_id else f"{user_id}@devsight.ai",
-        "full_name": name,
-        "role": role,
-        "is_active": True,
-    }
+                # Check if profiles table has role override
+                try:
+                    p_res = supabase.table("profiles").select("role, full_name").eq("id", sb_u.id).execute()
+                    if p_res.data and len(p_res.data) > 0:
+                        user_role = p_res.data[0].get("role", user_role)
+                except Exception:
+                    pass
+
+                return {
+                    "id": str(sb_u.id),
+                    "email": sb_u.email,
+                    "full_name": meta.get("full_name", sb_u.email.split("@")[0] if sb_u.email else "Engineer"),
+                    "role": user_role,
+                    "is_active": True,
+                }
+        except Exception as e:
+            logger.debug(f"Supabase Auth token verification: {e}")
+
+    # 3. Fallback: decode local JWT access token (for demo users or offline mode)
+    payload = decode_access_token(token)
+    if payload and payload.get("sub"):
+        user_id = payload.get("sub")
+        role = payload.get("role", "developer")
+        name = payload.get("name", "Demo User")
+
+        for u in DEMO_USERS:
+            if u["id"] == user_id or u["email"] == user_id:
+                return u
+
+        # Check Supabase profiles or users table
+        if supabase:
+            try:
+                res = supabase.table("users").select("*").eq("id", user_id).execute()
+                if res.data and len(res.data) > 0:
+                    return res.data[0]
+            except Exception as e:
+                logger.debug(f"DB user query error: {e}")
+
+        return {
+            "id": user_id,
+            "email": user_id if "@" in user_id else f"{user_id}@devsight.ai",
+            "full_name": name,
+            "role": role,
+            "is_active": True,
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid, expired, or unauthorized access token",
+    )
 
 
 def require_roles(allowed_roles: list[str]):
