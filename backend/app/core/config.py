@@ -27,7 +27,7 @@ class Settings:
     )
 
     # CORS
-    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://devsight-ai.vercel.app")
 
 
 settings = Settings()

@@ -42,18 +42,23 @@ app = FastAPI(
 )
 
 # ──────────────────────────────────────────────
-# CORS Middleware — configured from day 1 to
-# avoid cryptic errors when React dev server
-# connects (implementation plan watchpoint)
+# CORS Middleware — configured to allow local dev
+# and production Vercel frontend deployments
 # ──────────────────────────────────────────────
+
+cors_origins = [
+    settings.FRONTEND_URL,
+    settings.FRONTEND_URL.rstrip("/") if settings.FRONTEND_URL else None,
+    "https://devsight-ai.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+cors_origins = list(dict.fromkeys(o for o in cors_origins if o))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.FRONTEND_URL,       # React dev server (http://localhost:5173)
-        "http://localhost:5173",      # Fallback explicit origin
-        "http://localhost:3000",      # Alternative React port
-    ],
+    allow_origins=cors_origins,
+    allow_origin_regex=r"^https:\/\/([a-zA-Z0-9_-]+\.)*vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
